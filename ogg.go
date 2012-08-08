@@ -2,6 +2,7 @@ package ogg
 
 // See native C API documentation: http://www.xiph.org/vorbis/doc/vorbisfile
 
+// #cgo LDFLAGS: -lvorbisfile
 // #include <stdio.h>
 // #include <stdlib.h>
 // #include <vorbis/codec.h>
@@ -11,7 +12,7 @@ package ogg
 import "C"
 
 import (
-	"os"
+	"errors"
 	"unsafe"
 )
 
@@ -33,7 +34,7 @@ type File struct {
 
 // New is the simplest function used to open and initialize an File structure.
 // It sets up all the related decoding structure. 
-func New(filename string) (file *File, err os.Error) {
+func New(filename string) (file *File, err error) {
 	cFilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cFilename))
 
@@ -45,7 +46,7 @@ func New(filename string) (file *File, err os.Error) {
 
 	r := C.ov_fopen(cFilename, &(file.cOggFile))
 	if r != 0 {
-		return nil, os.NewError("Failed to open file")
+		return nil, errors.New("Failed to open file")
 	}
 
 	return file, nil
@@ -106,7 +107,7 @@ func (file *File) Read(buf []byte) int {
 		signed = 0
 	}
 
-	bufLen := (_Ctypedef_size_t)(len(buf))
+	bufLen := C.size_t(len(buf))
 	bp := (*_Ctype_char)(unsafe.Pointer(&buf[0]))
 	read := C.ogg_hlp_read(&(file.cOggFile), bp, bufLen,
 		_Ctype_int(file.Endianness),
